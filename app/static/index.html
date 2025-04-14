@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전자서명 생성기</title>
+    <script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(calc(-250px * 7)); }
+        }
+        
+        .slider {
+            height: 200px;
+            margin: auto;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+        
+        .slider::before,
+        .slider::after {
+            content: "";
+            height: 200px;
+            position: absolute;
+            width: 200px;
+            z-index: 2;
+        }
+        
+        .slider::after {
+            right: 0;
+            top: 0;
+            transform: rotateZ(180deg);
+        }
+        
+        .slider::before {
+            left: 0;
+            top: 0;
+        }
+        
+        .slider-track {
+            animation: scroll 40s linear infinite;
+            display: flex;
+            width: calc(250px * 14);
+        }
+        
+        .slide {
+            height: 200px;
+            width: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .signature-example {
+            font-family: 'Brush Script MT', cursive;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: rotate(-5deg);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .user-profile {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: none;
+            align-items: center;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 50px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .user-profile img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .user-info {
+            margin-right: 15px;
+        }
+
+        .user-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .logout-btn {
+            padding: 6px 12px;
+            background: #f1f3f5;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            color: #495057;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: #e9ecef;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- 사용자 프로필 -->
+    <div class="user-profile" id="user-profile">
+        <img id="profile-image" src="" alt="프로필">
+        <div class="user-info">
+            <a href="/profile" class="user-name" id="user-name"></a>
+            <div class="user-email" id="user-email"></div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+    </div>
+
+    <div class="container mx-auto px-4 py-12">
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-gray-800 mb-4">전자서명 생성기</h1>
+            <p class="text-xl text-gray-600">몇 초 만에 나만의 디지털 서명을 만들어보세요</p>
+        </div>
+
+        <!-- 로그인하지 않은 경우 표시될 로그인 컨테이너 -->
+        <div id="login-container" class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-8 mb-8 text-center">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">시작하기</h2>
+            <button id="kakao-login-btn" class="w-full bg-[#FEE500] text-gray-800 py-3 px-4 rounded-md hover:bg-[#FDD800] transition flex items-center justify-center">
+                <i class="fas fa-comment mr-2"></i> 카카오 계정으로 시작하기
+            </button>
+        </div>
+
+        <!-- 서명 예시 슬라이더 -->
+        <div class="mb-16" id="signature-examples">
+            <h2 class="text-2xl font-semibold text-center text-gray-700 mb-6">서명 예시</h2>
+            <div class="slider">
+                <div class="slider-track">
+                    <!-- 서명 예시들 -->
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #3b82f6;">홍길동</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #10b981;">김철수</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #f59e0b;">이영희</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #8b5cf6;">박민수</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #ec4899;">정미영</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #14b8a6;">최재훈</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #f97316;">강지원</div>
+                    </div>
+                    <!-- 무한 스크롤을 위한 복제 -->
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #3b82f6;">홍길동</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #10b981;">김철수</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #f59e0b;">이영희</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #8b5cf6;">박민수</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #ec4899;">정미영</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #14b8a6;">최재훈</div>
+                    </div>
+                    <div class="slide">
+                        <div class="signature-example text-3xl" style="color: #f97316;">강지원</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서명 생성기 폼 -->
+        <div id="signature-container" style="display: none;" class="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">서명 만들기</h2>
+            
+            <div class="mb-6">
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">이름 입력</label>
+                <input type="text" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="예: 홍길동">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">서명 스타일</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <button onclick="setFontStyle('Brush Script MT, cursive')" class="px-4 py-2 border rounded-md hover:bg-gray-100 transition">우아한</button>
+                    <button onclick="setFontStyle('Lucida Handwriting, cursive')" class="px-4 py-2 border rounded-md hover:bg-gray-100 transition">정형화된</button>
+                    <button onclick="setFontStyle('Segoe Script, cursive')" class="px-4 py-2 border rounded-md hover:bg-gray-100 transition">모던한</button>
+                    <button onclick="setFontStyle('Monotype Corsiva, cursive')" class="px-4 py-2 border rounded-md hover:bg-gray-100 transition">클래식</button>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">서명 색상</label>
+                <div class="flex space-x-2">
+                    <button onclick="setSignatureColor('#000000')" class="w-8 h-8 rounded-full bg-black border-2 border-gray-300"></button>
+                    <button onclick="setSignatureColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-gray-300"></button>
+                    <button onclick="setSignatureColor('#10b981')" class="w-8 h-8 rounded-full bg-emerald-500 border-2 border-gray-300"></button>
+                    <button onclick="setSignatureColor('#f59e0b')" class="w-8 h-8 rounded-full bg-amber-500 border-2 border-gray-300"></button>
+                    <button onclick="setSignatureColor('#ec4899')" class="w-8 h-8 rounded-full bg-pink-500 border-2 border-gray-300"></button>
+                    <button onclick="setSignatureColor('#8b5cf6')" class="w-8 h-8 rounded-full bg-violet-500 border-2 border-gray-300"></button>
+                </div>
+            </div>
+            
+            <button onclick="generateSignature()" class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition flex items-center justify-center">
+                <i class="fas fa-signature mr-2"></i> 서명 생성하기
+            </button>
+            
+            <div class="mt-8">
+                <h3 class="text-lg font-medium text-gray-800 mb-4">생성된 서명</h3>
+                <div id="signature-result" class="min-h-32 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <p class="text-gray-400">여기에 서명이 표시됩니다</p>
+                </div>
+                
+                <div class="mt-4 flex space-x-4">
+                    <button id="download-btn" onclick="downloadSignature()" class="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition flex items-center justify-center opacity-50 cursor-not-allowed" disabled>
+                        <i class="fas fa-download mr-2"></i> 다운로드
+                    </button>
+                    <button id="copy-btn" onclick="copySignature()" class="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition flex items-center justify-center opacity-50 cursor-not-allowed" disabled>
+                        <i class="fas fa-copy mr-2"></i> 복사
+                    </button>
+                </div>
+
+                <!-- 카카오페이 결제 섹션 추가 -->
+                <div class="mt-8 p-6 bg-gray-50 rounded-lg">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">프리미엄 서명 서비스</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium">고급 서명 패키지</p>
+                                <p class="text-sm text-gray-500">HD 품질, 워터마크 제거, 다양한 스타일</p>
+                            </div>
+                            <p class="font-bold">5,000원</p>
+                        </div>
+                        <button onclick="requestKakaoPay()" class="w-full bg-yellow-400 text-gray-800 py-3 px-4 rounded-md hover:bg-yellow-500 transition flex items-center justify-center">
+                            <img src="https://developers.kakao.com/assets/img/about/logos/payment/payment_icon_yellow_medium.png" alt="카카오페이" class="h-6 mr-2">
+                            카카오페이로 결제하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-12 text-center text-gray-500">
+            <p>문서와 이메일을 위한 아름다운 디지털 서명을 만들어보세요</p>
+            <p class="mt-2"><i class="fas fa-heart text-red-500"></i> 전문가를 위해 만들어진 서비스</p>
+        </div>
+    </div>
+
+    <script>
+        // 카카오 SDK 초기화
+        Kakao.init('c563ad85847ee03b36abff21f66c7ea5');
+        console.log('Kakao initialized:', Kakao.isInitialized());
+
+        // 페이지 로드 시 사용자 정보 확인
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/user', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const userInfo = await response.json();
+                    displayUserInfo(userInfo);
+                } else {
+                    // 로그인되지 않은 상태 처리
+                    document.getElementById('login-container').style.display = 'block';
+                    document.getElementById('user-profile').style.display = 'none';
+                    document.getElementById('signature-container').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error checking login status:', error);
+                // 에러 발생 시 로그인되지 않은 상태로 처리
+                document.getElementById('login-container').style.display = 'block';
+                document.getElementById('user-profile').style.display = 'none';
+                document.getElementById('signature-container').style.display = 'none';
+            }
+        }
+
+        // 페이지 로드 시 사용자 정보 확인
+        checkLoginStatus();
+
+        // 사용자 정보 표시 함수
+        function displayUserInfo(userInfo) {
+            if (!userInfo) return;
+            
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('user-profile').style.display = 'flex';
+            document.getElementById('signature-container').style.display = 'block';
+            
+            document.getElementById('profile-image').src = userInfo.profile_image;
+            document.getElementById('user-name').textContent = userInfo.nickname;
+            document.getElementById('user-email').textContent = userInfo.email;
+            
+            // 이름 입력창에 사용자 이름 자동 입력
+            document.getElementById('name').value = userInfo.nickname;
+        }
+
+        // 로그인 버튼 이벤트
+        document.getElementById('kakao-login-btn').addEventListener('click', function() {
+            Kakao.Auth.authorize({
+                redirectUri: 'http://127.0.0.1:8080/callback',
+                scope: 'profile_nickname profile_image account_email'
+            });
+        });
+
+        // 로그아웃 처리
+        function handleLogout() {
+            // 카카오 로그아웃
+            if (Kakao.Auth.getAccessToken()) {
+                Kakao.Auth.logout().then(function() {
+                    // 서버 로그아웃
+                    fetch('/logout', {
+                        method: 'POST',
+                        credentials: 'include'
+                    }).then(() => {
+                        // 페이지 새로고침
+                        window.location.href = '/';
+                    });
+                });
+            } else {
+                // 카카오 토큰이 없는 경우 서버 로그아웃만 실행
+                fetch('/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                }).then(() => {
+                    window.location.href = '/';
+                });
+            }
+        }
+
+        let currentFont = 'Brush Script MT, cursive';
+        let currentColor = '#000000';
+        let currentName = '';
+        
+        function setFontStyle(font) {
+            currentFont = font;
+            if (currentName) generateSignature();
+        }
+        
+        function setSignatureColor(color) {
+            currentColor = color;
+            if (currentName) generateSignature();
+        }
+        
+        function generateSignature() {
+            const nameInput = document.getElementById('name');
+            currentName = nameInput.value.trim();
+            
+            if (!currentName) {
+                alert('이름을 입력해주세요');
+                return;
+            }
+            
+            const signatureResult = document.getElementById('signature-result');
+            signatureResult.innerHTML = `
+                <div class="signature-example text-3xl" style="color: ${currentColor}; font-family: ${currentFont}">
+                    ${currentName}
+                </div>
+            `;
+            
+            // 다운로드와 복사 버튼 활성화
+            document.getElementById('download-btn').disabled = false;
+            document.getElementById('download-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+            document.getElementById('copy-btn').disabled = false;
+            document.getElementById('copy-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+        
+        function downloadSignature() {
+            if (!currentName) return;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 600;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.font = '40px ' + currentFont;
+            ctx.fillStyle = currentColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            ctx.fillText(currentName, canvas.width / 2, canvas.height / 2);
+            
+            const link = document.createElement('a');
+            link.download = `${currentName.replace(/\s+/g, '_')}_signature.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function copySignature() {
+            if (!currentName) return;
+            
+            const tempElement = document.createElement('div');
+            tempElement.style.fontFamily = currentFont;
+            tempElement.style.color = currentColor;
+            tempElement.style.fontSize = '24px';
+            tempElement.style.position = 'absolute';
+            tempElement.style.left = '-9999px';
+            tempElement.textContent = currentName;
+            document.body.appendChild(tempElement);
+            
+            const range = document.createRange();
+            range.selectNode(tempElement);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                alert('서명이 클립보드에 복사되었습니다!');
+            } catch (err) {
+                alert('서명 복사에 실패했습니다');
+            }
+            
+            window.getSelection().removeAllRanges();
+            document.body.removeChild(tempElement);
+        }
+
+        // 서명 저장
+        async function saveSignature(signatureData) {
+            try {
+                const response = await fetch('/api/signatures', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(signatureData)
+                });
+                
+                if (response.ok) {
+                    alert('서명이 성공적으로 저장되었습니다.');
+                } else {
+                    throw new Error('서명 저장에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Error saving signature:', error);
+                alert('서명 저장에 실패했습니다: ' + error.message);
+            }
+        }
+
+        // 카카오페이 결제 요청 함수
+        async function requestKakaoPay() {
+            try {
+                // 서버에 결제 준비 요청
+                const response = await fetch('/api/payment/prepare', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        item_name: '고급 서명 패키지',
+                        quantity: 1,
+                        total_amount: 5000
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('결제 준비 요청 실패');
+                }
+
+                const data = await response.json();
+                
+                // 카카오페이 결제 창 호출
+                window.location.href = data.next_redirect_pc_url;
+            } catch (error) {
+                console.error('카카오페이 결제 요청 실패:', error);
+                alert('결제 요청 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 결제 성공 시 처리할 함수
+        function handlePaymentSuccess(paymentResult) {
+            alert('결제가 완료되었습니다!');
+            // 프리미엄 기능 활성화 로직 추가
+        }
+    </script>
+</body>
+</html>

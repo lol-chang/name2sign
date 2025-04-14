@@ -1,0 +1,65 @@
+# 환경 설정 파일
+.env
+.env.*
+
+# SSL 인증서
+*.pem
+*.key
+*.crt
+*.csr
+*.cert
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 가상환경
+venv/
+ENV/
+env/
+
+# IDE 설정
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 데이터베이스
+*.db
+*.sqlite3
+
+# 로그 파일
+*.log
+
+# 테스트 커버리지
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+.qodo
