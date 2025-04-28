@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>프로필 정보</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="container">
+        <h1>프로필 정보</h1>
+        <div class="profile-container">
+            <img src="{{ profile_image }}" alt="프로필 이미지" class="profile-image">
+            <div class="profile-info">
+                <h2>{{ nickname }}</h2>
+                <p>이메일: {{ email }}</p>
+                <p>카카오 ID: {{ kakao_id }}</p>
+            </div>
+        </div>
+        <div style="margin-top: 20px;">
+            <a href="/" class="btn btn-profile">홈으로</a>
+            <a href="/logout" class="btn btn-logout">로그아웃</a>
+            <form action="/pay" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-pay">카카오페이 결제 테스트</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html> 
