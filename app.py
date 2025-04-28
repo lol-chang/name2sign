@@ -6,14 +6,21 @@ from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 from jose import jwt
 from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
 import os
 import requests
+
+# 데이터베이스 및 모델 임포트
+from database import engine, get_db, Base
+from models import User
 
 # .env 파일 로드
 load_dotenv()
 
+# 데이터베이스 테이블 생성
+Base.metadata.create_all(bind=engine)
+
 # 환경 변수 불러오기
-DATABASE_URL = os.getenv("DATABASE_URL")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
@@ -69,7 +76,7 @@ def login():
 
 # 로그인 후 콜백
 @app.get("/callback")
-def callback(code: str, response: Response):
+def callback(code: str, response: Response, db: Session = Depends(get_db)):
     print(f"받은 인증 코드: {code}")
     token_url = "https://kauth.kakao.com/oauth/token"
     token_data = {
@@ -96,19 +103,38 @@ def callback(code: str, response: Response):
 
     print(f"사용자 정보: {user_info}")
 
-    kakao_id = user_info.get("id")
+    kakao_id = str(user_info.get("id"))
     
     # 카카오 계정 정보 가져오기
     kakao_account = user_info.get("kakao_account", {})
     profile = kakao_account.get("profile", {})
     
+    # 데이터베이스에서 회원 정보 조회
+    user = db.query(User).filter(User.kakao_id == kakao_id).first()
+    
+    # 회원 정보가 없으면 신규 등록
+    if not user:
+        user = User(
+            kakao_id=kakao_id,
+            email=kakao_account.get("email"),
+            nickname=profile.get("nickname"),
+            profile_image=profile.get("profile_image_url")
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        print(f"신규 사용자가 등록되었습니다: {user.to_dict()}")
+    else:
+        # 기존 회원 정보 업데이트
+        user.email = kakao_account.get("email", user.email)
+        user.nickname = profile.get("nickname", user.nickname)
+        user.profile_image = profile.get("profile_image_url", user.profile_image)
+        db.commit()
+        db.refresh(user)
+        print(f"사용자 정보가 업데이트되었습니다: {user.to_dict()}")
+    
     # JWT 토큰에 저장할 추가 정보
-    user_data = {
-        "kakao_id": kakao_id,
-        "nickname": profile.get("nickname", "사용자"),
-        "profile_image": profile.get("profile_image_url", ""),
-        "email": kakao_account.get("email", "")
-    }
+    user_data = user.to_dict()
 
     # JWT 생성
     jwt_token = create_access_token(data=user_data)
@@ -135,6 +161,15 @@ def logout(response: Response):
     response = RedirectResponse(url="/")
     response.delete_cookie(key="access_token")
     return response
+
+# 사용자 목록 조회
+@app.get("/users")
+def list_users(request: Request, db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    return templates.TemplateResponse("users.html", {
+        "request": request,
+        "users": users
+    })
 
 # 카카오페이 결제 준비
 @app.post("/pay")
