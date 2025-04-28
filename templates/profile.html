@@ -5,6 +5,26 @@
     <link rel="stylesheet" href="/static/css/main.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .danger-zone {
+            margin-top: 40px;
+            padding: 20px;
+            border: 1px solid #f44336;
+            border-radius: 8px;
+            background-color: #fff8f8;
+        }
+        .danger-zone h2 {
+            color: #f44336;
+            margin-top: 0;
+        }
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -22,6 +42,14 @@
             <a href="/logout" class="btn btn-logout">로그아웃</a>
             <form action="/pay" method="post" style="display: inline;">
                 <button type="submit" class="btn btn-pay">카카오페이 결제 테스트</button>
+            </form>
+        </div>
+        
+        <div class="danger-zone">
+            <h2>위험 영역</h2>
+            <p>계정을 탈퇴하면 모든 데이터가 삭제되며 이 작업은 되돌릴 수 없습니다.</p>
+            <form action="/delete-account" method="post" onsubmit="return confirm('정말로 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.');">
+                <button type="submit" class="btn btn-danger">계정 탈퇴</button>
             </form>
         </div>
     </div>

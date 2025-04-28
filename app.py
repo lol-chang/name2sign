@@ -227,6 +227,57 @@ def pay_fail(request: Request):
         "message": "결제 처리 중 오류가 발생했습니다."
     })
 
+# 회원 탈퇴
+@app.post("/delete-account")
+def delete_account(request: Request, response: Response, db: Session = Depends(get_db)):
+    try:
+        # 현재 로그인된 사용자 정보 가져오기
+        user_data = get_current_user(request)
+        kakao_id = user_data.get("kakao_id")
+        
+        if not kakao_id:
+            raise HTTPException(status_code=400, detail="유효하지 않은 사용자 정보입니다.")
+        
+        # 사용자 정보 DB에서 찾기
+        user = db.query(User).filter(User.kakao_id == kakao_id).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+        
+        # 연결 해제를 위해 카카오에 요청 (선택적)
+        try:
+            # 카카오 연결 해제 API 호출
+            headers = {
+                "Authorization": f"KakaoAK {KAKAO_ADMIN_KEY}"
+            }
+            data = {
+                "target_id_type": "user_id",
+                "target_id": kakao_id
+            }
+            requests.post(
+                "https://kapi.kakao.com/v1/user/unlink",
+                headers=headers,
+                data=data
+            )
+        except Exception as e:
+            print(f"카카오 계정 연결 해제 중 오류 발생: {str(e)}")
+            # 카카오 연결 해제가 실패해도 계속 진행
+        
+        # DB에서 사용자 삭제
+        db.delete(user)
+        db.commit()
+        
+        # 로그아웃 처리 (쿠키 삭제)
+        response = RedirectResponse(url="/", status_code=303)
+        response.delete_cookie(key="access_token")
+        
+        return response
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"회원 탈퇴 처리 중 오류가 발생했습니다: {str(e)}")
+
 # 메인 페이지
 @app.get("/")
 def main_page(request: Request):
